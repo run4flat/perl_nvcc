@@ -24,21 +24,20 @@ interaction.
 Installation
 ============
 
-To install, set perl_nvcc to be executable
+These instructions will need to be revised soon. I believe they will eventually
+say this:
 
-	chmod a+x perl_nvcc
+The standard incantation (which should be performed by CPAN) is
 
-and copy it somewhere that will be picked up in your path:
+	perl Build.PL
+	./Build
+	./Build test
+	./Build install
 
-	sudo cp perl_nvcc /usr/local/bin/
-
-Better yet, make a symbolic link, so that updates (which may happen quickly, at 
-least for now) get automatically propogated:
-
-	sudo ln --symbolic perl_nvcc /usr/local/bin/perl_nvcc
+where the last line requires that you have root priveleges.
 
 
-Requirements
+Dependencies
 ============
 
 Although you can use perl_nvcc for whatever purposes you may have, the 
