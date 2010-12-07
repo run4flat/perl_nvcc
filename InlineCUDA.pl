@@ -2,8 +2,15 @@
 use strict;
 use warnings;
 
+BEGIN {
+	# Set this to get verbose output from the compiler (useful when things don't
+	# compile)
+	$ENV{PERL_NVCC_VERBOSE} = 1;
+}
+
 use Inline C => DATA => CC => '/usr/local/bin/perl_nvcc'
-		, LD => '/usr/local/bin/perl_nvcc';
+		, LD => '/usr/local/bin/perl_nvcc'
+		;
 
 # Generate a series of 100 sequential values and pack them
 # as an array of floats:

@@ -7,6 +7,8 @@ $nvcc_version =~ /NVIDIA/ or die "You must have nvcc (from nVidia's CUDA Toolkit
 my $build = Module::Build->new
 	(
 		module_name => 'ExtUtils::nvcc',
+		# Didn't think this next line was necessary...
+#		dist_version_from => 'ExtUtils::nvcc',
 		license  => 'perl',
 	);
 

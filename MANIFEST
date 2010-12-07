@@ -1,0 +1,7 @@
+bin/perl_nvcc
+Build.PL
+InlineCUDA.pl
+lib/ExtUtils/nvcc.pm
+MANIFEST			This list of files
+README
+t/env_vars.t

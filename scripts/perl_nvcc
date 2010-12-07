@@ -1,0 +1,256 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+=head1 NAME
+
+perl_nvcc - a wrapper for nVidia's nvcc
+
+=head1 DESCRIPTION
+
+This script is designed to take command-line arguments that would have gone to
+gcc, and it repackages them for nvcc (which actually invoked g++). Hopefully, it
+is a drop-in replacement for gcc in modules like Inline::C or Module::Build.
+
+=head1 TESTING AND DEBUGGING
+
+Ideally this script would have all of its main functionality defined in a
+(testable) library. For this first iteration, however, it is simply a script.
+In order to test the script, you need to set environment variables, which
+control the behavior of the script. Most of these variables will result in
+extra printouts from the compiler, but one of them, PERL_NVCC_DRY_RUN, will
+prevent the script from actually invoking the compiler. This is useful for
+testing to get the results of the script without actually invoking the heavy
+lifting.
+
+Note that this is used at present for the testing framework, but there is no
+guarantee that they will be present in the future. Consider the use of these
+environment variables to be temporary.
+
+Setting these environment variables to a true value (non-empty string) will give
+you the following results:
+
+=over
+
+=item PERL_NVCC_VERBOSE
+
+Gives verbose messages during processing.
+
+=cut
+
+my $verbose = $ENV{PERL_NVCC_VERBOSE};
+print "Giving verbose output\n" if $verbose;
+
+=pod
+
+=item PERL_NVCC_MATCHING
+
+Gives a printout of all of the options that match nvcc's list of known options,
+as well as filenames that are passed to the compiler.
+
+=cut
+
+my $print_matching = $ENV{PERL_NVCC_MATCHING};
+print "Will print matching arguments\n" if $print_matching and $verbose;
+
+=pod
+
+=item PERL_NVCC_NON_MATCHING
+
+Gives a printout of all of the options that do not match nvcc's list of known
+options. Note that filenames are not options, so they will not be included in
+this list.
+
+=cut
+
+my $print_non_matching = $ENV{PERL_NVCC_NON_MATCHING};
+print "Will print non-matching arguments\n" if $print_non_matching and $verbose;
+
+=pod
+
+=item PERL_NVCC_MODE
+
+Gives a printout of the mode, which is either linking or compiling.
+
+=cut
+
+my $print_mode = $ENV{PERL_NVCC_MODE};
+print "Will print compiler/linker mode\n" if $print_mode and $verbose;
+
+=pod
+
+=item PERL_NVCC_DRY_RUN
+
+Sets the script to only print out results, but not actually invoke the compiler.
+This is mostly in place for testing purposes.
+
+=cut
+
+my $dry_run = $ENV{PERL_NVCC_DRY_RUN};
+print "Performing dry-run\n" if $dry_run and $verbose;
+
+=pod
+
+=item PERL_NVCC_RENAME
+
+Explains whether or not the script is renaming the source file, and which name
+it will get. This will not actually rename the file if perl_nvcc is in dry-run
+mode.
+
+nvcc's behavior depends on the filename's ending, so filenames with
+CUDA code must have a .cu ending. However, Inline::C (and pretty much any
+utility that creates XS extensions for Perl) uses a .c file extension. To make
+this work as a drop-in replacement for gcc, this needs to rename files. Note
+that this will only rename files ending in a .c extension; it will have no
+effect on the linking stage since, by that point, all the files have been
+compiled to object files and have a different file extension.
+
+perl_nvcc's response to this variable is a bit different from the others. If you
+want a printout of the renaming, set it to a true value, in which case you will
+get the renaming whether it actually happens or not (due to setting of dry-run
+mode). If for some reason you don't want the renaming but you do want to compile
+the source, set this exlicitly to a false value, such as zero. If the
+environment variable is not defined, perl_nvcc will perform the renaming
+silently.
+
+=cut
+
+my $rename = $ENV{PERL_NVCC_RENAME};
+print "Silently renaming\n" if not $dry_run and not $rename and $verbose;
+if (defined $rename and $rename) {
+	print "(Not actually) " if $dry_run;
+	print "Renaming c source files\n" if $verbose;
+}
+if (defined $rename and not $rename) {
+	print "Not renaming c source files\n" if $verbose;
+}
+
+=pod
+
+=back
+
+=cut
+
+
+# The role of this little script is to preprocess the arguments that would
+# normally go to gcc just fine, but which need to be escaped for nvcc. This
+# script determines whether it's compiling or linking based on the last
+# argument, which will either be a .c file or something else. As such, adding
+# the following two lines to your Inline::C config should make this work:
+#  CC => '/path/to/perl_nvcc',
+#  LD => '/path/to/perl_nvcc',
+
+unless (@ARGV) {
+	print "Nothing to do! You must give me at least a file to compile!\n";
+	exit 0;
+}
+
+# First determine if we are compiling or linking.
+my $filename = pop @ARGV;
+# Assume linking, unless we find a .c file extension.
+my $stage = 'linker';
+if ($filename =~ /\.c$/) {
+	# Unless explicitly told not to do so ($rename is defined and false), rename
+	# the file:
+	if (defined $rename and not $rename) {
+		# Do nothing
+	}
+	else {
+		# Rename the file unless we're in a dry run.
+		rename $filename, $filename . 'u' unless $dry_run;
+		
+		# Print out a status message if requested.
+		print "Renaming $filename to ${filename}u\n" if $rename or $verbose;
+		
+		# Modify the file extension:
+		$filename .= 'u';
+	}
+	
+	# Make sure the stage indicates we're compiling:
+	$stage = 'compiler';
+}
+
+print "perl_nvcc operating as a $stage\n" if $print_mode or $verbose;
+
+# Go through the args and look for non-conformant arguments:
+my @extra_options;
+my @nvcc_args;
+
+my $next_arg_is_file = 0;
+
+foreach (@ARGV) {
+	# First check if the next arg was flagged as a file name, in which case
+	# just pass it along.
+	print "Analyzing arg [[$_]]..." if $verbose;
+	if ($next_arg_is_file) {
+		print "apparently an output filename; passing through untouched\n" if $verbose;
+		push @nvcc_args, $_;
+		$next_arg_is_file = 0;
+	}
+	elsif (
+		# check if it's an nvcc-safe flag or option, and pass it along if so:
+		# Make sure the argument is a valid argument. These are the valid flags
+		# (i.e. options that do not take values)
+		m{^-(?:
+			[gGEMcv]|cuda|cubin|fatbin|ptx|gpu|link|lib|pg|shared|noprof
+			|foreign|dryrun|keep|clean|deviceemu|use_fast_math
+		)$}x
+		or
+		# These are valid command-line options with associated values, but which
+		# don't have an = seperating the option from the value
+		m/^-[lLDUIoOm]./
+		or
+		# These are valid command-line options that have an = seperating the
+		# option from the value.
+		m{^-(?:
+			include|isystem|odir|ccbin|extdeb
+			|X(?:compiler|linker|opencc|cudafe|ptxas|fatbin)
+			|save-temps|run-args|idp|ddp|dp|arch|code|gencode|dir|ext|int
+			|maxrregcount|ftz|prec-div|prec-sqrt
+		)=.+/x}
+	) {
+		print "matches known flag\n" if $verbose;
+		push @nvcc_args, $_;
+	}
+	# Check if this is a bare -o flag, indicating the next argument is the
+	# output file
+	elsif (/^-o$/) {
+		print "is a bare -o; will pass along and include next arg untouched, also\n"
+			if $verbose;
+		push @nvcc_args, $_;
+		$next_arg_is_file = 1;
+	}
+	# Otherwise pull it out and add it to the collection of external flags and
+	# options.
+	elsif (/^-/) {
+		print "matches unknown flag; adding it to compiler/linker list\n"
+			if $verbose;
+		push @extra_options, $_;
+	}
+	# If there is no dash, it's just a filename, so pass it along
+	else {
+		print "not a flag; passing along untouched\n" if $verbose;
+		push @nvcc_args, $_;
+	}
+}
+
+print "Recognized nvcc args include:\n", join("\n", @nvcc_args), "\n"
+	if $print_matching;
+print "Unrecognized nvcc args include:\n", join("\n", @extra_options), "\n"
+	if $print_non_matching;
+
+# Set up the flags for the compiler or linker arguments:
+my $extra_options = "-X$stage=" . join ',', @extra_options;
+
+# Only add special linker or compiler commands if they exist :-)
+unshift @nvcc_args, $extra_options if @extra_options;
+
+# Add the additional arguments.
+unshift @nvcc_args, 'nvcc';
+push @nvcc_args, $filename;
+
+print "Executing @nvcc_args\n" if $verbose;
+
+unless ($dry_run) {
+	exec(@nvcc_args) or die "Unable to execute nvcc. Is it in your path?\n";
+}
