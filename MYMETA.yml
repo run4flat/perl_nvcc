@@ -1,5 +1,5 @@
 ---
-abstract: 'the library behind C<perl_nvcc>'
+abstract: 'the library that will eventually be behind C<perl_nvcc>'
 author:
   - 'David Mertens <dcmertens.perl@gmail.com>'
 configure_requires:
@@ -11,6 +11,10 @@ meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
 name: ExtUtils-nvcc
+provides:
+  ExtUtils::nvcc:
+    file: lib/ExtUtils/nvcc.pm
+    version: 0.01
 resources:
   license: http://dev.perl.org/licenses/
 version: 0.01
