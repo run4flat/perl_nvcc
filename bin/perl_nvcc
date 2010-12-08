@@ -116,13 +116,13 @@ silently.
 =cut
 
 my $rename = $ENV{PERL_NVCC_RENAME};
-print "Silently renaming\n" if not $dry_run and not $rename and $verbose;
-if (defined $rename and $rename) {
+print "Silently renaming\n" if not $dry_run and not defined $rename and $verbose;
+if (defined $rename and $rename and $verbose) {
 	print "(Not actually) " if $dry_run;
-	print "Renaming c source files\n" if $verbose;
+	print "Renaming c source files\n";
 }
-if (defined $rename and not $rename) {
-	print "Not renaming c source files\n" if $verbose;
+if (defined $rename and not $rename and $verbose) {
+	print "Not renaming c source files\n";
 }
 
 =pod
