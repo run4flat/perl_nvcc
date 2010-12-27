@@ -1,6 +1,8 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use File::Copy;	# may or may not be necessary, depending on system's support for
+				# hard and soft file links.
 
 =head1 NAME
 
@@ -91,19 +93,25 @@ print "Performing dry-run\n" if $dry_run and $verbose;
 
 =pod
 
-=item PERL_NVCC_RENAME
+=item PERL_NVCC_C_AS_CU
 
-Explains whether or not the script is renaming the source file, and which name
-it will get. This will not actually rename the file if perl_nvcc is in dry-run
-mode.
-
-nvcc's behavior depends on the filename's ending, so filenames with
+Sets whether or not the script should process .c source files as .cu files.
+nvcc's behavior depends on the filename's ending (can't set it with a flag, as
+far as I can tell), so filenames with
 CUDA code must have a .cu ending. However, Inline::C (and pretty much any
 utility that creates XS extensions for Perl) uses a .c file extension. To make
-this work as a drop-in replacement for gcc, this needs to rename files. Note
-that this will only rename files ending in a .c extension; it will have no
-effect on the linking stage since, by that point, all the files have been
-compiled to object files and have a different file extension.
+this work as a drop-in replacement for gcc in Inline::C, this needs to send .cu
+files to nvcc whenever it encounters .c files.
+
+The way this is actually implemented, perl_nvcc first tries to create a symbolic
+link to the .c file with the .cu extension; it then tries a hard link; it last
+tries a direct copy. If none of these work, perl_nvcc croaks. In particular, you
+will encounter trouble if you try to compile a .c file using perl_nvcc and you
+have an identically named .cu file.
+
+Note that perl_nvcc will only do this with files ending in a .c extension; it
+will have no effect on the linking stage since, by that point, all the files
+have been compiled to object files and have a different file extension.
 
 perl_nvcc's response to this variable is a bit different from the others. If you
 want a printout of the renaming, set it to a true value, in which case you will
@@ -115,8 +123,8 @@ silently.
 
 =cut
 
-my $rename = $ENV{PERL_NVCC_RENAME};
-print "Silently renaming\n" if not $dry_run and not defined $rename and $verbose;
+my $rename = $ENV{PERL_NVCC_C_AS_CU};
+print "Silently renaming\n" if not $dry_run and not (defined $rename) and $verbose;
 if (defined $rename and $rename and $verbose) {
 	print "(Not actually) " if $dry_run;
 	print "Renaming c source files\n";
@@ -149,6 +157,7 @@ unless (@ARGV) {
 my $filename = pop @ARGV;
 # Assume linking, unless we find a .c file extension.
 my $stage = 'linker';
+my $file_should_be_removed = 0;
 if ($filename =~ /\.c$/) {
 	# Unless explicitly told not to do so ($rename is defined and false), rename
 	# the file:
@@ -156,17 +165,36 @@ if ($filename =~ /\.c$/) {
 		# Do nothing
 	}
 	else {
-		# Rename the file unless we're in a dry run.
-		rename $filename, $filename . 'u' unless $dry_run;
-		
-		# Print out a status message if requested.
-		print "Renaming $filename to ${filename}u\n" if $rename or $verbose;
+		unless ($dry_run) {
+			# Unless we're doing a dry run, create a link, if possible, or copy
+			# the file to a new file extension. No matter what, make sure that a
+			# .cu file exists, or croak:
+			make_cu_file($filename)
+			or do {
+				my $message = "Unable to create file name ${filename}u ";
+				if (-f $filename.'u') {
+					$message .= 'because it already exists';
+				}
+				else {
+					$message .= 'for an unknown reason';
+				}
+				# working here - document this error message:
+				$message .= "\nI need to be able to use that file name to use nvcc correctly\n";
+				die $message;
+			};
+			
+			# update the file-removal flag
+			$file_should_be_removed = 1;
+		}
 		
 		# Modify the file extension:
 		$filename .= 'u';
 	}
 	
 	# Make sure the stage indicates we're compiling:
+	$stage = 'compiler';
+}
+elsif ($filename =~ /\.cu$/) {
 	$stage = 'compiler';
 }
 
@@ -251,6 +279,61 @@ push @nvcc_args, $filename;
 
 print "Executing @nvcc_args\n" if $verbose;
 
-unless ($dry_run) {
-	exec(@nvcc_args) or die "Unable to execute nvcc. Is it in your path?\n";
+my $results = 0;
+$results = system(@nvcc_args) unless $dry_run;
+if ($results != 0) {
+	# Failed. Is nvcc available?
+	if (`nvcc -V`) {
+		# Yes... it must be compiler error:
+		print "nvcc encountered a problem\n";
+	}
+	else {
+		# No... we can't do anything if there is no nvcc!
+		print "Unable to run nvcc. Is it in your path?\n";
+	}
 }
+
+# Remove the .cu file
+if ($file_should_be_removed) {
+	print "Removing $filename\n";
+	unlink $filename;
+}
+
+exit $results;
+
+# The way that link and symlink handle relative file paths differs from the way
+# that copy handles relative file paths. Relative paths are computed with
+# respect to the SECOND ARGUMENT'S LOCATION, rather than the present working
+# directory. In other words, if you're making a link, but you're not working in
+# the directory where the link resides, you have to do some file name munging.
+# This is particularly annoying, since plain old copies DON'T behave this way.
+#
+# This function tries to make a symbolic link, a hard link, or a direct copy,
+# to a .cu file, in light of this weird behavior.
+sub make_cu_file {
+	my $filename = shift;
+	
+	# Localize the system error string, just to be safe:
+	local $!;
+	
+	# Extract just the filename:
+	(undef, undef, my $old_name) = File::Spec->splitpath($filename);
+	
+	# Try a symbolic link:
+	if (eval {symlink($old_name, $filename.'u')}) {
+		print "Making symbolic link $filename => ${filename}u\n" if $verbose;
+		return 1;
+	}
+	# Try a hard link:
+	if (eval {link($old_name, $filename.'u')}) {
+		print "Making hard link $filename => ${filename}u\n" if $verbose;
+		return 1;
+	}
+	# Try a direct file copy:
+	if (not -f $filename.'u' and copy($filename, $filename.'u')) {
+		print "Copying $filename => ${filename}u\n" if $verbose;
+		return 1;
+	}
+	return 0;
+}
+

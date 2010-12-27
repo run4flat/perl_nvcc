@@ -8,8 +8,18 @@ use warnings;
 
 use Test::More tests => 12;
 
-# Add the path to the perl_nvcc script:
-$ENV{PATH} = 'blib/script';
+# Ensure we are in the distribution's root directory (otherwise, including the
+# blib in the path will prove futile).
+use Cwd;
+use File::Spec;
+if (cwd =~ /t$/) {
+	print "# moving up one directory\n";
+	chdir File::Spec->updir() or die "Need to move out of test directory, but can't\n";
+}
+
+# Add blib/script to the path:
+use Config;
+$ENV{PATH} .= $Config{path_sep} . File::Spec->catfile('blib', 'script');
 
 # See if the script is in our path. This will return a nasty message telling
 # us we didn't provide enough arguments, but that's ok because Perl will
@@ -44,19 +54,25 @@ ok ($results =~ /print matching/, 'perl_nvcc recognizes matching environment var
 ok ($results =~ /print non-matching/, 'perl_nvcc recognizes non-matching environment variable');
 ok ($results =~ /compiler\/linker/, 'perl_nvcc recognizes mode environment variable');
 
-# Check the effects of true, false and non-setting of PERL_NVCC_RENAME.
+# Check the effects of true, false and non-setting of PERL_NVCC_C_AS_CU.
 # For the first round, it wasn't set; I shouldn't get any messages about
 # renaming:
-ok ($results !~ /renaming/i, 'In dry-run mode, perl_nvcc says nothing about renaming when PERL_NVCC_RENAME is not set');
+ok ($results !~ /renaming/i, 'In dry-run mode, perl_nvcc says nothing about renaming when PERL_NVCC_C_AS_CU is not set');
 # Now set it to something true and see what happens:
-$ENV{PERL_NVCC_RENAME} = 'yes';
+$ENV{PERL_NVCC_C_AS_CU} = 'yes';
 $results = `perl_nvcc`;
 ok ($results =~ /Renaming/, 'perl_nvcc recognizes rename environment variable');
 # Set it to something explicitly false:
-$ENV{PERL_NVCC_RENAME} = '';
+$ENV{PERL_NVCC_C_AS_CU} = '';
 $results = `perl_nvcc`;
 ok ($results =~ /Not renaming/, 'perl_nvcc recognizes false-but-defined rename environment variable');
 # Check that removing the key actually undefines the variable
-delete $ENV{PERL_NVCC_RENAME};
+delete $ENV{PERL_NVCC_C_AS_CU};
 $results = `perl_nvcc`;
 ok ($results !~ /renaming/i, 'deleting key from \%ENV is different from specifying a false value');
+
+# working here: test the file-already-exists problem:
+# 1) create rename_test.cu (with whatever contents; could be empty)
+# 2) run perl_nvcc against rename_test.c
+# 3) make sure that perl_nvcc croaks
+
