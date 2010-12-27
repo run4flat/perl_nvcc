@@ -1,7 +1,12 @@
 bin/perl_nvcc
 Build.PL
-InlineCUDA.pl
+examples/InlineCUDA.pl
 lib/ExtUtils/nvcc.pm
 MANIFEST			This list of files
 README
+t/compile.t
+t/cuda_test.cu
 t/env_vars.t
+t/rename_test.c
+t/simple_compile_test.cu
+META.yml

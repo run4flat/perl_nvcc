@@ -48,3 +48,6 @@
 
 # Avoid archives of this distribution
 \bExtUtils-nvcc-[\d\.\_]+
+
+# Avoid inline cached files
+\b_Inline
