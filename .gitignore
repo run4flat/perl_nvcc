@@ -1,5 +1,8 @@
 Build
 MANIFEST.SKIP.bak
+MANIFEST.bak
+META.yml
 _build/
 blib/
 _Inline/
+*.tar.gz
