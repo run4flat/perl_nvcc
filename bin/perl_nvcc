@@ -41,7 +41,13 @@ Gives verbose messages during processing.
 =cut
 
 my $verbose = $ENV{PERL_NVCC_VERBOSE};
-print "Giving verbose output\n" if $verbose;
+sub diag {
+	if ($verbose) {
+		print @_;
+	}
+}
+
+diag "Giving verbose output\n";
 
 =pod
 
@@ -53,7 +59,7 @@ as well as filenames that are passed to the compiler.
 =cut
 
 my $print_matching = $ENV{PERL_NVCC_MATCHING};
-print "Will print matching arguments\n" if $print_matching and $verbose;
+diag "Will print matching arguments\n" if $print_matching;
 
 =pod
 
@@ -66,7 +72,7 @@ this list.
 =cut
 
 my $print_non_matching = $ENV{PERL_NVCC_NON_MATCHING};
-print "Will print non-matching arguments\n" if $print_non_matching and $verbose;
+diag "Will print non-matching arguments\n" if $print_non_matching;
 
 =pod
 
@@ -77,7 +83,7 @@ Gives a printout of the mode, which is either linking or compiling.
 =cut
 
 my $print_mode = $ENV{PERL_NVCC_MODE};
-print "Will print compiler/linker mode\n" if $print_mode and $verbose;
+diag "Will print compiler/linker mode\n" if $print_mode;
 
 =pod
 
@@ -89,7 +95,7 @@ This is mostly in place for testing purposes.
 =cut
 
 my $dry_run = $ENV{PERL_NVCC_DRY_RUN};
-print "Performing dry-run\n" if $dry_run and $verbose;
+diag "Performing dry-run\n" if $dry_run;
 
 =pod
 
@@ -124,13 +130,13 @@ silently.
 =cut
 
 my $rename = $ENV{PERL_NVCC_C_AS_CU};
-print "Silently renaming\n" if not $dry_run and not (defined $rename) and $verbose;
-if (defined $rename and $rename and $verbose) {
-	print "(Not actually) " if $dry_run;
-	print "Renaming c source files\n";
+diag "Silently renaming\n" if not $dry_run and not defined $rename;
+if (defined $rename and $rename) {
+	diag "(Not actually) " if $dry_run;
+	diag "Renaming c source files\n";
 }
-if (defined $rename and not $rename and $verbose) {
-	print "Not renaming c source files\n";
+if (defined $rename and not $rename) {
+	diag "Not renaming c source files\n";
 }
 
 =pod
@@ -209,9 +215,9 @@ my $next_arg_is_file = 0;
 foreach (@ARGV) {
 	# First check if the next arg was flagged as a file name, in which case
 	# just pass it along.
-	print "Analyzing arg [[$_]]..." if $verbose;
+	diag "Analyzing arg [[$_]]...";
 	if ($next_arg_is_file) {
-		print "apparently an output filename; passing through untouched\n" if $verbose;
+		diag "apparently an output filename; passing through untouched\n";
 		push @nvcc_args, $_;
 		$next_arg_is_file = 0;
 	}
@@ -235,29 +241,27 @@ foreach (@ARGV) {
 			|X(?:compiler|linker|opencc|cudafe|ptxas|fatbin)
 			|save-temps|run-args|idp|ddp|dp|arch|code|gencode|dir|ext|int
 			|maxrregcount|ftz|prec-div|prec-sqrt
-		)=.+/x}
+		)=.+}x
 	) {
-		print "matches known flag\n" if $verbose;
+		diag "matches known flag\n";
 		push @nvcc_args, $_;
 	}
 	# Check if this is a bare -o flag, indicating the next argument is the
 	# output file
 	elsif (/^-o$/) {
-		print "is a bare -o; will pass along and include next arg untouched, also\n"
-			if $verbose;
+		diag "is a bare -o; will pass along and include next arg untouched, also\n";
 		push @nvcc_args, $_;
 		$next_arg_is_file = 1;
 	}
 	# Otherwise pull it out and add it to the collection of external flags and
 	# options.
 	elsif (/^-/) {
-		print "matches unknown flag; adding it to compiler/linker list\n"
-			if $verbose;
+		diag "matches unknown flag; adding it to compiler/linker list\n";
 		push @extra_options, $_;
 	}
 	# If there is no dash, it's just a filename, so pass it along
 	else {
-		print "not a flag; passing along untouched\n" if $verbose;
+		diag "not a flag; passing along untouched\n";
 		push @nvcc_args, $_;
 	}
 }
@@ -277,7 +281,7 @@ unshift @nvcc_args, $extra_options if @extra_options;
 unshift @nvcc_args, 'nvcc';
 push @nvcc_args, $filename;
 
-print "Executing @nvcc_args\n" if $verbose;
+diag "Executing @nvcc_args\n";
 
 my $results = 0;
 $results = system(@nvcc_args) unless $dry_run;
@@ -295,7 +299,7 @@ if ($results != 0) {
 
 # Remove the .cu file
 if ($file_should_be_removed) {
-	print "Removing $filename\n";
+	diag "Removing $filename\n";
 	unlink $filename;
 }
 
@@ -321,17 +325,17 @@ sub make_cu_file {
 	
 	# Try a symbolic link:
 	if (eval {symlink($old_name, $filename.'u')}) {
-		print "Making symbolic link $filename => ${filename}u\n" if $verbose;
+		diag "Making symbolic link $filename => ${filename}u\n";
 		return 1;
 	}
 	# Try a hard link:
 	if (eval {link($old_name, $filename.'u')}) {
-		print "Making hard link $filename => ${filename}u\n" if $verbose;
+		diag "Making hard link $filename => ${filename}u\n";
 		return 1;
 	}
 	# Try a direct file copy:
 	if (not -f $filename.'u' and copy($filename, $filename.'u')) {
-		print "Copying $filename => ${filename}u\n" if $verbose;
+		diag "Copying $filename => ${filename}u\n";
 		return 1;
 	}
 	return 0;
