@@ -254,3 +254,21 @@ print "Executing @nvcc_args\n" if $verbose;
 unless ($dry_run) {
 	exec(@nvcc_args) or die "Unable to execute nvcc. Is it in your path?\n";
 }
+
+
+=head1 IDEAS
+
+This is a place where I can put my thoughts, especially this one that just
+cropped into my head. I should allow the user to specify compiler flags with
+environment variables. Eventually I will have to write a subclass of
+L<Module::Build> that will allow a user to set minimum architectures, as well
+as perform automated benchmarking, but the start would be to allow and look for
+environment variables.
+
+=head1 AUTHOR
+
+David Mertens <dcmertens.perl@gmail.com>
+
+=head1 SEE ALSO
+
+L<Inline::C>, L<KappaCUDA>, L<http://www.nvidia.com/object/cuda_home_new.html>
