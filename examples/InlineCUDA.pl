@@ -2,15 +2,8 @@
 use strict;
 use warnings;
 
-BEGIN {
-	# Set this to get verbose output from the compiler (useful when things don't
-	# compile)
-	$ENV{PERL_NVCC_VERBOSE} = 1;
-}
-
-use Inline C => DATA => CC => '/usr/local/bin/perl_nvcc'
-		, LD => '/usr/local/bin/perl_nvcc'
-		;
+use ExtUtils::nvcc;
+use Inline C => DATA => ExtUtils::nvcc->Inline;
 
 # Generate a series of 100 sequential values and pack them
 # as an array of floats:
@@ -71,4 +64,4 @@ void cuda_test(char * input) {
 	
 	// Free the device memory
 	cudaFree(data_d);
-}
+}  // note again?
