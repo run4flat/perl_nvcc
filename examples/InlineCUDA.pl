@@ -64,4 +64,4 @@ void cuda_test(char * input) {
 	
 	// Free the device memory
 	cudaFree(data_d);
-}  // note again?
+}  // note again?!

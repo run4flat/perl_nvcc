@@ -29,7 +29,7 @@ use File::Spec;
  
  # Here's the magic sauce
  
- use Inline C => DATA => ExtUtils::nvcc->Inline;
+ use Inline C => DATA => ExtUtils::nvcc::Inline;
  
  # The rest of this is just a working example
  
@@ -102,7 +102,7 @@ use File::Spec;
  
  WriteMakefile(
      # ... other options ...
-	 ExtUtils::nvcc->EUMM,
+	 ExtUtils::nvcc::EUMM,
  );
 
 =head2 Module::Build
@@ -113,7 +113,7 @@ use File::Spec;
  
  my $build = Module::Build->new(
      # ... other options ...
-     config => {ExtUtils::nvcc->MB},
+     config => {ExtUtils::nvcc::MB},
  );
 
 
@@ -137,8 +137,13 @@ functions to process what they see.
 =cut
 
 sub Inline {
+	if (@_) {
+		return CC => qq{$^X -MExtUtils::nvcc -e"ExtUtils::nvcc::verbose;ExtUtils::nvcc::compiler" --}
+			, LD => qq{$^X -MExtUtils::nvcc -e"ExtUtils::nvcc::verbose;ExtUtils::nvcc::linker" --};
+	}
+	# else
 	return CC => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::compiler --"
-        , LD => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::linker --";
+		, LD => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::linker --";
 }
 
 =head2 EUMM
@@ -146,8 +151,13 @@ sub Inline {
 =cut
 
 sub EUMM {
+	if (@_) {
+		return CC => qq{$^X -MExtUtils::nvcc -e"ExtUtils::nvcc::verbose;ExtUtils::nvcc::compiler" --}
+			, LD => qq{$^X -MExtUtils::nvcc -e"ExtUtils::nvcc::verbose;ExtUtils::nvcc::linker" --};
+	}
+	# else
 	return CC => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::compiler --"
-        , LD => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::linker --";
+		, LD => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::linker --";
 }
 
 =head2 MB
@@ -155,9 +165,19 @@ sub EUMM {
 =cut
 
 sub MB {
-	return cc => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::compiler --",
-                ld => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::linker --"	
-} 
+	if (@_) {
+		return cc => qq{$^X -MExtUtils::nvcc -e"ExtUtils::nvcc::verbose;ExtUtils::nvcc::compiler" --}
+			, ld => qq{$^X -MExtUtils::nvcc -e"ExtUtils::nvcc::verbose;ExtUtils::nvcc::linker" --};
+	}
+	# else
+	return cc => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::compiler --"
+		, ld => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::linker --";
+}
+
+sub verbose {
+	print "Making verbose\n";
+	our $verbose = 1;
+}
 
 
 =head2 compiler
@@ -181,11 +201,12 @@ have an identically named .cu file.
 =cut
 
 ################################################################################
-# Usage			: compiler()
+# Usage			: compiler([verbose])
 # Purpose		: Process the command-line arguments and send digestable
 #				: arguments to nvcc in compiler mode.
 # Returns		: nothing
-# Parameters	: none
+# Parameters	: an optional argument, the very presence of which indicates
+#				: verbose output
 # Throws		: if there are no arguments or no source files.
 # Comments		: Most of the hard work is done by process_args
 # See also		: linker
@@ -196,7 +217,9 @@ sub compiler {
 	die "Nothing to do! You didn't give me any arguments, not even a file!\n"
 		unless @ARGV;
 	
-	# remove the first few arguments:
+	# Get verbosity flag:
+	our $verbose;
+print "Being verbose\n" if $verbose;
 	
 	# Get the nvcc args, the compiler args, and the source files:
 	my ($nvcc_args, $other_args, $source_files) = process_args(@ARGV);
@@ -207,9 +230,9 @@ sub compiler {
 	my @source_files = @$source_files;
 	my @to_remove;
 	
-warn "Compiler got nvcc args [[", join(']], [[', @nvcc_args), "]]\n";
-warn "other args [[", join(']], [[', @other_args), "]]\n";
-warn "and source files [[", join(']], [[', @source_files), "]]\n";
+	print "Compiler got nvcc args [[", join(']], [[', @nvcc_args), "]]\n" if $verbose;
+	print "other args [[", join(']], [[', @other_args), "]]\n" if $verbose;
+	print "and source files [[", join(']], [[', @source_files), "]]\n" if $verbose;
 
 	# rename the source files if they end in .c
 	# (croak if they don't end in .c?)
@@ -233,6 +256,7 @@ warn "and source files [[", join(']], [[', @source_files), "]]\n";
 	eval {run_nvcc(@nvcc_args, @source_files) };
 	
 	# Remove the .cu files and finish with death if nvcc failed:
+	print "Removing ", join(', ', @to_remove), "\n" if $verbose;
 	unlink $_ foreach @to_remove;
 	die $@ if $@;
 }
@@ -260,6 +284,9 @@ sub linker {
 	die "Nothing to do! You didn't give me any arguments, not even a file!\n"
 		unless @ARGV;
 	
+	# Get verbosity flag:
+	our $verbose;
+	
 	# Get the nvcc args, the compiler args, and the source files:
 	my ($nvcc_args, $other_args, $source_files) = process_args(@ARGV);
 	
@@ -268,9 +295,9 @@ sub linker {
 	my @other_args = @$other_args;
 	my @source_files = @$source_files;
 	
-warn "Compiler got nvcc args [[", join(']], [[', @nvcc_args), "]]\n";
-warn "other args [[", join(']], [[', @other_args), "]]\n";
-warn "and source files [[", join(']], [[', @source_files), "]]\n";
+	print "Compiler got nvcc args [[", join(']], [[', @nvcc_args), "]]\n" if $verbose;
+	print "other args [[", join(']], [[', @other_args), "]]\n" if $verbose;
+	print "and source files [[", join(']], [[', @source_files), "]]\n" if $verbose;
 
 	# Make sure they provided at least one source file:
 	die "You must provide at least one source file\n"
@@ -329,8 +356,10 @@ To use, try something like this:
 # See also		: compiler, linker
 
 sub run_nvcc {
+	our $verbose;
+	print "Running nvcc with args [[", join(']], [[', @_), "]]\n" if $verbose;
+
 	# Run the nvcc command and return the results:
-warn "Running nvcc with args [[", join(']], [[', @_), "]]\n";
 	my $results = system('nvcc', @_);
 
 	# Make sure things didn't go bad:
