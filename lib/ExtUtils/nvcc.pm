@@ -10,10 +10,12 @@ use warnings;
 # These are necessary for Module::Build to work simply:
 package ExtUtils::nvcc;
 use vars qw($VERSION);
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 # For errors, of course:
-use Carp qw(:all);
+use Carp qw(croak);
+# Needed for make_cu_file:
+use File::Spec;
 
 =head1 SYNOPSES
 
@@ -23,11 +25,11 @@ use Carp qw(:all);
  use strict;
  use warnings;
  
+ use ExtUtils::nvcc;
+ 
  # Here's the magic sauce
  
- use Inline C => DATA => CC => "$^X -MExtUtils::nvcc -ecompile"
-        , LD => "$^X -MExtUtils::nvcc -elink"
-        ;
+ use Inline C => DATA => ExtUtils::nvcc->Inline;
  
  # The rest of this is just a working example
  
@@ -95,20 +97,23 @@ use Carp qw(:all);
 =head2 ExtUtils::MakeMaker
 
  # In your Makefile.PL:
+ use ExtUtils::MakeMaker;
+ use ExtUtils::nvcc;
+ 
  WriteMakefile(
      # ... other options ...
-	 CC => "$^X -MExtUtils::nvcc -ecompile",
-     LD => "$^X -MExtUtils::nvcc -elink",
-     
+	 ExtUtils::nvcc->EUMM,
  );
 
 =head2 Module::Build
 
  # In your Build.PL file:
+ use Module::Build;
+ use ExtUtils::nvcc;
+ 
  my $build = Module::Build->new(
      # ... other options ...
-     config => {cc => "$^X -MExtUtils::nvcc -ecompile",
-                ld => "$^X -MExtUtils::nvcc -elink"},
+     config => {ExtUtils::nvcc->MB},
  );
 
 
@@ -127,9 +132,37 @@ The library provides a number of functions, but only exports C<compile>
 and C<link>, which go through the argument list and call other library
 functions to process what they see.
 
-=head2 compile
+=head2 Inline
 
-The compile function processes all arguments in C<@ARGS>, ensures that
+=cut
+
+sub Inline {
+	return CC => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::compiler --"
+        , LD => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::linker --";
+}
+
+=head2 EUMM
+
+=cut
+
+sub EUMM {
+	return CC => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::compiler --"
+        , LD => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::linker --";
+}
+
+=head2 MB
+
+=cut
+
+sub MB {
+	return cc => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::compiler --",
+                ld => "$^X -MExtUtils::nvcc -eExtUtils::nvcc::linker --"	
+} 
+
+
+=head2 compiler
+
+The compiler function processes all arguments in C<@ARGS>, ensures that
 the source file ends in a .cu extension, and invokes nvcc as a compiler.
 
 nvcc's behavior depends on the filename's ending (can't set it with a flag, as
@@ -148,20 +181,22 @@ have an identically named .cu file.
 =cut
 
 ################################################################################
-# Usage			: compile()
+# Usage			: compiler()
 # Purpose		: Process the command-line arguments and send digestable
 #				: arguments to nvcc in compiler mode.
 # Returns		: nothing
 # Parameters	: none
 # Throws		: if there are no arguments or no source files.
 # Comments		: Most of the hard work is done by process_args
-# See also		: link
+# See also		: linker
 
-sub compile {
+sub compiler {
 	# First make sure that we have arguments (since I'll need a file to
 	# compile, in the very least):
 	die "Nothing to do! You didn't give me any arguments, not even a file!\n"
 		unless @ARGV;
+	
+	# remove the first few arguments:
 	
 	# Get the nvcc args, the compiler args, and the source files:
 	my ($nvcc_args, $other_args, $source_files) = process_args(@ARGV);
@@ -170,13 +205,19 @@ sub compile {
 	my @nvcc_args = @$nvcc_args;
 	my @other_args = @$other_args;
 	my @source_files = @$source_files;
+	my @to_remove;
 	
+warn "Compiler got nvcc args [[", join(']], [[', @nvcc_args), "]]\n";
+warn "other args [[", join(']], [[', @other_args), "]]\n";
+warn "and source files [[", join(']], [[', @source_files), "]]\n";
+
 	# rename the source files if they end in .c
 	# (croak if they don't end in .c?)
 	foreach (@source_files) {
 		if (/\.c$/) {
 			make_cu_file($_);
 			s/\.c$/.cu/;
+			push @to_remove, $_;
 		}
 	}
 	
@@ -192,28 +233,28 @@ sub compile {
 	eval {run_nvcc(@nvcc_args, @source_files) };
 	
 	# Remove the .cu files and finish with death if nvcc failed:
-	unlink $_ foreach @source_files;
+	unlink $_ foreach @to_remove;
 	die $@ if $@;
 }
 
-=head2 link
+=head2 linker
 
-The link function processes all arguments in C<@ARGS>, and invokes nvcc
+The linker function processes all arguments in C<@ARGS>, and invokes nvcc
 as a linker with properly modified arguments.
 
 =cut
 
 ################################################################################
-# Usage			: link()
+# Usage			: linker()
 # Purpose		: Process the command-line arguments and send digestable
 #				: arguments to nvcc in linker mode.
 # Returns		: nothing
 # Parameters	: none
 # Throws		: if there are no arguments or no source files.
 # Comments		: Most of the hard work is done by process_args
-# See also		: compile
+# See also		: compiler
 
-sub link {
+sub linker {
 	# First make sure that we have arguments (since I'll need a file to
 	# link, in the very least):
 	die "Nothing to do! You didn't give me any arguments, not even a file!\n"
@@ -227,6 +268,10 @@ sub link {
 	my @other_args = @$other_args;
 	my @source_files = @$source_files;
 	
+warn "Compiler got nvcc args [[", join(']], [[', @nvcc_args), "]]\n";
+warn "other args [[", join(']], [[', @other_args), "]]\n";
+warn "and source files [[", join(']], [[', @source_files), "]]\n";
+
 	# Make sure they provided at least one source file:
 	die "You must provide at least one source file\n"
 		unless @source_files;
@@ -281,10 +326,11 @@ To use, try something like this:
 # Throws		: if nvcc fails; gives different exception if nvcc is
 #				: or is not available
 # Comments		: 
-# See also		: compile, link
+# See also		: compiler, linker
 
 sub run_nvcc {
 	# Run the nvcc command and return the results:
+warn "Running nvcc with args [[", join(']], [[', @_), "]]\n";
 	my $results = system('nvcc', @_);
 
 	# Make sure things didn't go bad:
@@ -333,11 +379,11 @@ Here's a usage example:
 #				: legibility. Perhaps all of these options can be seperated into
 #				: some text file, or put in the __DATA__ section, in more readable
 #				: form and then parsed once upon loading?
-# See also		: compile, link
+# See also		: compiler, linker
 
 
 sub process_args {
-	my (@nvcc_args, @extra_options, @source_files);
+	my (@nvcc_args, @other_args, @source_files);
 	my $include_next_arg = 0;
 
 	foreach (@_) {
@@ -365,6 +411,7 @@ sub process_args {
 			)$}x
 			# These are valid command-line options with associated values, but which
 			# don't have an = seperating the option from the value
+			or
 			m/^-[lLDUIoOmG]./
 			or
 			# These are valid command-line options that have an = seperating the
@@ -421,7 +468,7 @@ sub process_args {
 		# Otherwise pull it out and add it to the collection of external flags and
 		# options.
 		elsif (/^-/) {
-			push @extra_options, $_;
+			push @other_args, $_;
 		}
 		# If there is no dash, it's just a source filename.
 		else {
@@ -468,7 +515,7 @@ encapsulate the annoyance that is those differences.
 #				: file name munging. This is particularly annoying, since plain
 #				: old copies DON'T behave this way. The purpose of this function
 #				: is to encapsulate that annoying edge case.
-# See also		: compile
+# See also		: compiler
 
 sub make_cu_file {
 	my $filename = shift;
