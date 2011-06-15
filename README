@@ -1,70 +1,62 @@
 Intro
 =====
 
-perl_nvcc is a simple wrapper script that packages gcc options in a way that 
-nvcc understands.
+ExtUtils::nvcc is a CUDA compiler and linker wrapper for Perl's toolchain.
 
-gcc and g++ take a lot of options. Perl has learned to use many of these 
+Modern compilers take a lot of options. Perl has learned to use many of these 
 options. The problem is that nvcc, nVidia's compiler wrapper---which must be 
 used to write CUDA code---doesn't like most of those extra flags and options. It 
 has a special set of command-line arguments that allow you to pass compiler and 
 linker flags on to the actual compiler and linker, but it does not send those 
 options along by default. That makes life harder than it ought to be.
 
-Hence perl_nvcc. The main goal of this project is to provide a compiler and 
-linker acceptable for Inline::C and its myriad of compiler and linker flags, but 
-which manages to use nvcc for CUDA-related compilation. The loftier goal of this 
-project, which it will likely never achieve, is to provide a drop-in replacement 
-for g++ that uses nvcc as an intermediate compiler. The idealistic goal of this 
-project is to create a handful of CPAN distributions with Inline::CUDA and other 
-CUDA related modules, and finally start serious, open-source CUDA-Perl 
-interaction.
+Hence ExtUtils::nvcc. The main goal of this project is to provide a compiler and 
+linker acceptable to the common Perl build tools, Inline::C, ExtUtils::MakeMaker,
+and Module::Build, which allows for the compilation of CUDA code without having
+to modify the myriad of compiler and linker flags. It also provides some super-
+simple functions for configuring the common build tools to use nvcc in their
+build chain.
 
 
 Installation
 ============
 
-These instructions will need to be revised soon. I believe they will eventually
-say this:
-
-The standard incantation (which should be performed by CPAN) is
+The standard incantation (which should be performed by CPAN) should work:
 
 	perl Build.PL
 	./Build
 	./Build test
 	./Build install
 
-where the last line requires that you have root priveleges.
+The last line requires that you have root priveleges unless you are using
+local::lib.
 
 
 Dependencies
 ============
 
-Although you can use perl_nvcc for whatever purposes you may have, the 
-underlying motivation for this work is for integration with the Inline::C Perl 
-module. You should install on your system if you don't alredy have it. To do 
-that, try
-
-	sudo cpan Inline::C
-
-(A Windows-appropriate command would be appreciated) If it asks about 
-Parse::RecDescent, you should agree to have it installed.
+Although you can use ExtUtils::nvcc for whatever purposes you may have, the 
+underlying motivation for this work is for integration with the Perl toolchain.
+You can use this module outside of the Perl toolchain (by wrapping the awkward
+command-line invocation, perhaps), but it's really meant to operate with
+ExtUtils::MakeMaker, Inline::C, and Module::Build.
 
 
 Usage
 =====
 
-Once you've installed this script to somewhere in your path, using it in your 
-Inline::C scripts is relatively easy. See InlineCUDA.pl for an example script.
+See InlineCUDA.pl for an example script, as well as the synopsis in
+ExtUtils::nvcc
 
 
 Bugs
 ====
 
-At the moment, the included example script dies with a segmentation fault. The 
-death occurrs after the last END block, so I don't think it's a problem, 
-functionally speaking. However, clearly something is messed up with the 
-bookkeeping, and I'm not sure what's going one. Help here would be appreciated.
+At the moment, Perl modules (and by extension scripts that use ExtUtils::nvcc
+together with Inline::C) die with a segmentation fault. The death occurrs after
+the last END block, so I don't think it's a problem, functionally speaking.
+However, clearly something is messed up with the bookkeeping, and I'm not sure
+what's going one. Help here would be appreciated.
 
 
 Feedback Welcome
@@ -83,7 +75,7 @@ as PDL, Inline, Module::Build, or something else. I am open to suggestions.
 Copyright
 =========
 
-All of this material is copyright David Mertens, 2010, and is distributed under 
-the Artistic License. For more information, see 
+All of this material is copyright David Mertens, 2010-2011, and is distributed
+under the Artistic License. For more information, see 
 http://dev.perl.org/licenses/artistic.html
 
