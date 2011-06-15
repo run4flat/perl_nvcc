@@ -11,10 +11,10 @@
 
 int main() {
 //	printf("[[%s]]\n", __FILE__);
-	if (strcmp(__FILE__, "t/rename_test.c") == 0) {
-		printf("Not renamed");
+	if (strcmp(__FILE__, "t/rename_test.c") == 0 || strcmp(__FILE__, "rename_test.c") == 0) {
+		printf("Not renamed\n");
 	}
 	else {
-		printf("Renamed");
+		printf("Renamed\n");
 	}
 }
