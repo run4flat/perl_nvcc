@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use ExtUtils::nvcc;
-use Inline C => DATA => ExtUtils::nvcc->Inline;
+use Inline C => DATA => ExtUtils::nvcc::Inline;
 
 # Generate a series of 100 sequential values and pack them
 # as an array of floats:

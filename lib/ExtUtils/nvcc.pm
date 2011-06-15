@@ -21,8 +21,6 @@ $VERSION = '0.02';
 
 # For errors, of course:
 use Carp qw(croak);
-# Needed for make_cu_file:
-use File::Spec;
 
 =head1 SYNOPSES
 
@@ -128,9 +126,9 @@ partial examples for L<ExtUtils::MakeMaker> and L<Module::Build>.
 =head1 DESCRIPTION
 
 This module serves as the configuration front-end to a Perl module that knows
-how to translate gcc command-line arguments into nvcc-digestable command-line
-arguments, and perform the necessary file fiddling to get nvcc to compile your
-CUDA code. I discuss that functionality in L<ExtUtils::nvcc::Backend>.
+how to translate arbitrary command-line arguments into nvcc-digestable
+command-line arguments. This means you can use nvcc to compile CUDA code for
+Perl. I discuss that functionality in L<ExtUtils::nvcc::Backend>.
 
 This module functions for your day-to-day use of ExtUtils::nvcc (if there is
 such a thing as day-to-day use of a toolchain). It provides a few functions that
@@ -277,11 +275,12 @@ sub MB {
 =head2 Optional Arguments
 
 I would hope that if there's a problem during compilation, it's due to a mistake
-in your code. However, this toolchain is still quite new and rather untested, so
-errors may sometimes arise due to L<ExtUtils::nvcc::Backend> mis-handling an
-argument. Verbosity, and possibly other arguments in the future, can be sent to
-L<ExtUtils::nvcc::Backend> to help you sort it all out. All you need to do is
-supply the word 'verbose' as an argument to L</Inline>, L</EUMM>, or L</MB>.
+in your code and not this module. However, this toolchain is still quite new and
+rather untested, so errors may sometimes arise due to L<ExtUtils::nvcc::Backend>
+mis-handling an argument. Verbosity, and possibly other arguments in the future,
+can be sent to L<ExtUtils::nvcc::Backend> to help you sort it all out. All you
+need to do is supply the word 'verbose' as an argument to L</Inline>, L</EUMM>,
+or L</MB>.
 
 =begin more-arguments
 
@@ -388,25 +387,6 @@ If the last argument is complete, to the best of your knowledge, it could be
 that L<ExtUtils::nvcc::Backend> mis-parsed your command-line arguments in other
 ways. You should enable verbose output and study that for more details.
 
-=item Unable to create file name <souce-file>.cu because it already exists
-
-This means you passed a file with a .c file extension to
-L<ExtUtils::nvcc::Backend>, and you have a like-named file with a .cu
-extension in your directory. L<ExtUtils::nvcc::Backend> needs to create a file
-with a .cu extension (a requirement of the nvcc compiler), so you'll need to
-rename that file, or remove it if it's there erroneously.
-
-=item Unable to create file name <souce-file>.cu for an unknown reason
-
-This means you passed a file with a .c file extension to
-L<ExtUtils::nvcc::Backend>, and it was unable to create a like-named file with a
-.cu extension in your working directory. This is almost certainly due to a
-permissions problem. Be sure that you have write permissions in your working
-directory and try again. (I sometimes run the build process as root by accident,
-and doing such a thing could cause this problem.) Note that 
-L<ExtUtils::nvcc::Backend> needs to create a file with a .cu extension in order
-for nvcc to treat it as a CUDA source file.
-
 =item Nothing to do! You didn't give me any arguments, not even a file!
 
 This means that you somehow invoked L<ExtUtils::nvcc::Backend> without a single
@@ -428,7 +408,13 @@ be ready to go.
 =item nvcc encountered a problem
 
 In this case, nvcc attempted to compile or link your code and failed. Look over
-the compiler/linker output for clues as to where your code went wrong.
+the compiler/linker output for clues as to where your code went wrong. My guess
+is that there is a compiler error in your code.
+
+However, it is possible that the Backend is out-of-touch with your version of
+nvcc, and it (for example) passed an nvcc argument through to your compiler.
+Your compiler won't like that and it will likely complain. In that case, file
+a bug report, as discussed in L</BUGS AND LIMITATIONS>.
 
 =back
 
@@ -455,28 +441,29 @@ tying anything into Perl.
 
 =back
 
-
-=head2 BUGS AND LIMITATIONS
+=head1 BUGS AND LIMITATIONS
 
 The giant, huge, fat, glaring bug with ExtUtils::nvcc is that it creates code
 which segfaults at the very end of the program. There is deep magic, almost
 certainly involving a double-free, which I have yet to figure out. Any help for
 this would be much appreciated.
 
-The second major problem is that Backend has a very ad-hoc parsing scheme that
-is not tested at the moment. It would be better, I think, to test nvcc 
+The second major problem is that the Backend has a very ad-hoc parsing scheme
+that is not tested at the moment. It would be better, I think, to query nvcc at
+runtime for arguments that it accepts so that there could never be a version
+skew for the arguments that the Backend parses and the arguments that nvcc
+accepts.
 
 I believe C<ExtUtils::nvcc> will operate on Windows machines under Cygwin and
-under Strawberry Perl, since they use gcc.
-I would like to see C<ExtUtils::nvcc> operate with Microsoft's compiler as
-well, but I do not have a Windows machine or the Microsoft toolchain so I cannot
-develop or test for that system. If you are a developers with an interest in
-extending the functionality of L<ExtUtils::nvcc::Backend> to work with
-Microsoft's compiler, I welcome your contributions!
+under Strawberry Perl, since they use gcc. Furthermore, I believe that 
+C<ExtUtils::nvcc> does in fact work with Microsoft's compiler as well, but I do
+not have a Windows machine or the Microsoft toolchain so I cannot develop or
+test for that system. If you are a developer with an interest in ensuring that
+L<ExtUtils::nvcc::Backend> works with Microsoft's compiler, I welcome your
+contributions!
 
-The code for ExtUtils::nvcc is hosted at github
-
-Please file bugs at L<https://rt.cpan.org/Public/Bug/Report.html?Queue=ExtUtils-nvcc>.
+The code for ExtUtils::nvcc is hosted at github, but please file bugs at
+L<https://rt.cpan.org/Public/Bug/Report.html?Queue=ExtUtils-nvcc>.
 
 =head1 AUTHOR
 
@@ -486,6 +473,8 @@ be sensible for a Perl developer.
 David Mertens <dcmertens.perl.csharp@gmail.com>
 
 =head1 SEE ALSO
+
+The source code for this project is on github at L<github.com/run4flat/perl_nvcc>.
 
 This is intended to be part of the toolchain to enable L<CUDA>. A Perl module
 for CUDA does not yet exist, but (hopefully) this will be used for it when that

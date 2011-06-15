@@ -1,6 +1,6 @@
 # A script to see if nvcc actually compiles code that runs.
 
-use Test::More tests => 6;
+use Test::More tests => 4;
 use strict;
 use warnings;
 
@@ -30,16 +30,11 @@ unlink 'rename_test.cu' if -f 'rename_test.cu';
 ###################
 # CUDA file tests #
 ###################
-# Tests 1-5 for plain C code and plain cuda code, using .cu file extension.
+# Tests 1-4 for plain C code and plain cuda code, using .c and .cu file
+# extensions.
 
 my $compile_output = compile_and_run('t/simple_compile_test.cu', 'good to go!');
-$compile_output = compile_and_run('t/cuda_test.cu', 'Success');
-
-################
-# C file tests #
-################
-
-$compile_output = compile_and_run('t/rename_test.c', 'Renamed');
+$compile_output = compile_and_run('t/cuda_test.c', 'Success');
 
 ###################
 # compile_and_run #
@@ -74,4 +69,3 @@ sub compile_and_run {
 	
 	return $compile_output;
 }
-

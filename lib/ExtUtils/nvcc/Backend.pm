@@ -11,8 +11,6 @@ package ExtUtils::nvcc::Backend;
 
 # For errors, of course:
 use Carp qw(croak);
-# Needed for make_cu_file:
-use File::Spec;
 
 =head1 SYNOPSIS
 
@@ -37,11 +35,11 @@ function:
 
 =head1 DESCRIPTION
 
-This module provides functions to convert your gcc-style arguments to acceptable
-nvcc arguments and invoke nvcc to compile or link your code. Generally speaking,
-you won't need to worry about this module and should stick with functions from
-L<ExtUtils::nvcc> that provide configuration options for the common Perl
-toolchains.
+This module provides functions to convert arbitrary command-line arguments to
+acceptable nvcc arguments and invoke nvcc to compile or link your code.
+Generally speaking, you won't need to worry about this module and should stick
+with functions from L<ExtUtils::nvcc> that provide configuration options for the
+common Perl toolchains.
 
 However, if you are working on your own toolchain and need to invoke nvcc with
 Perl's original build arguments, you'll probably want to use this module. The
@@ -60,11 +58,9 @@ process arguments, I decided to roll the whole thing into one.
 
 =head2 compiler
 
-The compiler function processes all arguments in C<@ARGS>, ensures that
-the source file ends in a .cu extension, and invokes nvcc as a compiler.
-
-See L</make_cu_file> for information on how C<ExtUtils::nvcc::Backend> creates
-files with the .cu extension.
+The compiler function processes all arguments in C<@ARGS>, wraps them in such a
+way that nvcc knows how to process them, and ensures that nvcc compiles the
+source files as cuda files (even if they have a .c extension).
 
 =cut
 
@@ -95,33 +91,20 @@ sub compiler {
 	my @nvcc_args = @$nvcc_args;
 	my @other_args = @$other_args;
 	my @source_files = @$source_files;
-	my @to_remove;
+	
+	# Add --x=cu if it's not already there (why would it already be there?)
+	push @nvcc_args, '--x=cu' unless grep {/^-+x=?cu/} @nvcc_args;
 	
 	# Make sure they provided at least one source file:
 	die "You must provide at least one source file\n"
 		unless @source_files;
 	
-	# rename the source files if they end in .c
-	# (croak if they don't end in .c?)
-	foreach (@source_files) {
-		if (/\.c$/) {
-			make_cu_file($_);
-			s/\.c$/.cu/;
-			push @to_remove, $_;
-		}
-	}
-	
 	# Set up the flags for the compiler arguments:
 	unshift @nvcc_args, ("-Xcompiler=" . join ',', @other_args)
 		if @other_args;
 	
-	# Run nvcc in an eval block in case of errors:
-	eval {run_nvcc('--x=cu', @nvcc_args, @source_files) };
-	
-	# Remove the .cu files and finish with death if nvcc failed:
-	print "Removing ", join(', ', @to_remove), "\n" if $verbose;
-	unlink $_ foreach @to_remove;
-	die $@ if $@;
+	# Run nvcc (errors will propogate with death)
+	run_nvcc(@nvcc_args, @source_files);
 }
 
 =head2 linker
@@ -371,71 +354,6 @@ sub process_args {
 	}
 
 	return (\@nvcc_args, \@other_args, \@source_files);
-}
-
-=head2 make_cu_file
-
-Takes a C source file with a .c extension and makes an associated .cu file. Sure,
-I could just copy the contents of the file, or temporarily rename the source
-file, but I decided to first try making a symbolic link or hard link before
-resorting to copying. If none of these work, perl_nvcc croaks. In particular,
-you will encounter trouble if you try to compile a .c file and you have an
-identically named .cu file.
-
-As it turns out, the command to copy a file takes different arguments from the
-command to create a symbolic link, so one purpose of this function is to
-encapsulate the annoyance that is those differences.
-
-=cut
-
-################################################################################
-# Usage			: make_cu_file($c_file_name)
-# Purpose		: Create a like-named file with a .cu extension, either by
-#				: creating a symbolic link, a hard link, or a direct copy.
-# Returns		: nothing
-# Parameters	: $c_file_name, a string with the c file name,
-#				: with the .c extension
-# Throws		: when unable to create the .cu file, usually when such
-#				: a file already exists.
-# Comments		: The way that link and symlink handle relative file paths
-#				: differs from the way that copy handles relative file paths.
-#				: Relative paths are computed with respect to the SECOND
-#				: ARGUMENT'S LOCATION, rather than the present working directory.
-#				: In other words, if you're making a link, but you're not working
-#				: in the directory where the link resides, you have to do some
-#				: file name munging. This is particularly annoying, since plain
-#				: old copies DON'T behave this way. The purpose of this function
-#				: is to encapsulate that annoying edge case.
-# See also		: compiler
-
-sub make_cu_file {
-	my $filename = shift;
-	
-	# Localize the system error string, just to be safe:
-	local $!;
-	
-	# Extract just the filename:
-	(undef, undef, my $old_name) = File::Spec->splitpath($filename);
-	
-	# Try a symbolic link:
-	return if eval {symlink($old_name, $filename.'u')};
-	# Try a hard link:
-	return if eval {link($old_name, $filename.'u')};
-	# Try a direct file copy (notice this does not use $old_name like
-	# the others):
-	return if not -f $filename.'u' and copy($filename, $filename.'u');
-	
-	# That didn't work, so croak:
-	my $message = "Unable to create file name ${filename}u ";
-	if (-f $filename.'u') {
-		$message .= 'because it already exists';
-	}
-	else {
-		$message .= 'for an unknown reason';
-	}
-	# working here - document this error message:
-	$message .= "\nI need to be able to use that file name to use nvcc correctly\n";
-	die $message;
 }
 
 =head2 verbose
