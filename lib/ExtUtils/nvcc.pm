@@ -13,11 +13,11 @@ use vars qw($VERSION);
 
 =head1 VERSION
 
-This documentation explains the use of ExtUtils::nvcc version 0.02.
+This documentation explains the use of ExtUtils::nvcc version 0.03.
 
 =cut
 
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 # For errors, of course:
 use Carp qw(croak);
@@ -346,6 +346,33 @@ sub build_args {
 
 1;
 
+=head1 WIDNOWS ISSUES
+
+Windows usage presents a couple of difficulties, as described in this section.
+
+=head2 Visual Studio Only
+
+Unfortunately, nVidia's compiler wrapper (nvcc) only supports the use of cl.exe
+on Windows. This means that Cygwin and Strawberry Perl users are out of luck for
+using ExtUtils::nvcc.
+
+There may be a way to install Visual Studio alongside your Strawberry Perl or
+Cygwin installations. In that case, assuming you run the build process in a
+Visual Studio Command Prompt, nvcc will be happy because it will be able to find
+cl.exe. However, I have not tested this method, and I expect that perl will have
+trouble loading the resulting libraries. Please let me know if you get this to
+work.
+
+=head2 Visual Studio Command Prompt
+
+When you install Visual Studio (as of Visual Studio 2010), you will get a Start
+Menu entry for Visual Studio Command Prompt. You should run your build processes
+(i.e. cpan) from one of these command prompts. Among other things, this command
+prompt sets all of the necessary environment variables to ensure that the
+compiler can be found, and that the compiler can find all the necessary
+libraries.
+
+
 =head1 DIAGNOSTICS
 
 ExtUtils::nvcc could croak for a number of reasons. To keep things concise, I
@@ -439,6 +466,11 @@ backend.) If you are in an environment in which you do not have these tools,
 you will be able to use L<ExtUtils::nvcc::Backend>, but you'll have a hard time
 tying anything into Perl.
 
+=item gcc (Linux) or Visual Studio (Windows)
+
+The nvcc compiler only supports gcc on Linux, and cl.exe on Windows. You cannot
+specify an alternative compiler.
+
 =back
 
 =head1 BUGS AND LIMITATIONS
@@ -454,13 +486,11 @@ runtime for arguments that it accepts so that there could never be a version
 skew for the arguments that the Backend parses and the arguments that nvcc
 accepts.
 
-I believe C<ExtUtils::nvcc> will operate on Windows machines under Cygwin and
-under Strawberry Perl, since they use gcc. Furthermore, I believe that 
-C<ExtUtils::nvcc> does in fact work with Microsoft's compiler as well, but I do
-not have a Windows machine or the Microsoft toolchain so I cannot develop or
-test for that system. If you are a developer with an interest in ensuring that
-L<ExtUtils::nvcc::Backend> works with Microsoft's compiler, I welcome your
-contributions!
+For Windows users, a third major dilema is that nvcc only works with Microsoft's
+compiler, cl.exe, on Windows machines. As such, C<ExtUtils::nvcc> will not
+operate correctly under Cygwin or Strawberry Perl (unless, possibly, if you
+install Visual Studio also). I would like to remedy this situation. Please let
+me know if you find a work-around for Strawberry Perl or Cygwin.
 
 The code for ExtUtils::nvcc is hosted at github, but please file bugs at
 L<https://rt.cpan.org/Public/Bug/Report.html?Queue=ExtUtils-nvcc>.

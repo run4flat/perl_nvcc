@@ -6,3 +6,7 @@ _build/
 blib/
 _Inline/
 *.tar.gz
+
+# Ignore windows build files
+*.bat
+MYMETA.json

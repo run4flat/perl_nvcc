@@ -5,10 +5,10 @@ ExtUtils::nvcc is a CUDA compiler and linker wrapper for Perl's toolchain.
 
 Modern compilers take a lot of options. Perl has learned to use many of these 
 options. The problem is that nvcc, nVidia's compiler wrapper---which must be 
-used to write CUDA code---doesn't like most of those extra flags and options. It 
-has a special set of command-line arguments that allow you to pass compiler and 
-linker flags on to the actual compiler and linker, but it does not send those 
-options along by default. That makes life harder than it ought to be.
+used to compile CUDA code---doesn't like most of those extra flags and options.
+It has a special set of command-line arguments that allow you to pass compiler 
+and linker flags on to the actual compiler and linker, but it does not send 
+those options along by default. That makes life harder than it ought to be.
 
 Hence ExtUtils::nvcc. The main goal of this project is to provide a compiler and 
 linker acceptable to the common Perl build tools, Inline::C, ExtUtils::MakeMaker,
@@ -32,6 +32,21 @@ The last line requires that you have root priveleges unless you are using
 local::lib.
 
 
+Windows Restrictions
+====================
+
+The people at nVidia decided to only support gcc on Linux machines, and cl.exe
+(MS Visual Studio's compiler) on Windows machines. This is truly unfortunate
+since the code is clearly in place to support gcc. In practice, this means that
+ExtUtils::nvcc will not work properly on Strawberry Perl or Cygwin's perl. I'm
+afraid you'll have to get a version of Perl compiled with Visual Studio, and
+you'll need a copy of Visual Studio to compile nVidia code. The good news is
+that Microsoft allows you to download a free copy of any single componenet of
+the Visual Studio suite: you can download Visual C/C++ for free. You will likely
+need to compile your own perl, but once that's in place, you'll have a fully
+operating CPAN and ExtUtils::nvcc will work correctly.
+
+
 Dependencies
 ============
 
@@ -40,6 +55,8 @@ underlying motivation for this work is for integration with the Perl toolchain.
 You can use this module outside of the Perl toolchain (by wrapping the awkward
 command-line invocation, perhaps), but it's really meant to operate with
 ExtUtils::MakeMaker, Inline::C, and Module::Build.
+
+Although not necessary for use, the installation requires Module::Build.
 
 
 Usage
@@ -52,11 +69,11 @@ ExtUtils::nvcc
 Bugs
 ====
 
-At the moment, Perl modules (and by extension scripts that use ExtUtils::nvcc
-together with Inline::C) die with a segmentation fault. The death occurrs after
-the last END block, so I don't think it's a problem, functionally speaking.
-However, clearly something is messed up with the bookkeeping, and I'm not sure
-what's going one. Help here would be appreciated.
+At the moment, Perl modules built using ExtUtils::nvcc (and by extension scripts
+that use ExtUtils::nvcc together with Inline::C) die with a segmentation fault. 
+The death occurrs after the last END block, so I don't think it's a problem, 
+functionally speaking. However, clearly something is messed up with the 
+bookkeeping, and I'm not sure what's going one. Help here would be appreciated.
 
 
 Feedback Welcome

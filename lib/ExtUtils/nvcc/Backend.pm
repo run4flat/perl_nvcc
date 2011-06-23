@@ -12,6 +12,9 @@ package ExtUtils::nvcc::Backend;
 # For errors, of course:
 use Carp qw(croak);
 
+# To check if this is a windows perl built with gcc:
+use Config;
+
 =head1 SYNOPSIS
 
 This is meant to be used from the command-line, invoking either the C<compiler>
@@ -193,6 +196,30 @@ To use, try something like this:
 # See also		: compiler, linker
 
 sub run_nvcc {
+	# XXX nvcc does not play nicely with gcc on Windows. It requires cl (from
+	# Visual Studio). There might be a heroic way to get around this, but the
+	# obvious/historic answer (using --foreign) does not work:
+	if ($Config{cc} eq 'gcc' and $Config{osname} =~ /MSWin/) {
+#		push @_, '--foreign=gcc' unless grep {/^--foreign/} @_;
+		warn join("\n", '', '*'x61
+			, '* This will very likely not compile. You compiled your perl *'
+			, '* using gcc (either with mingw, Cygwin, or Strawberry) but  *'
+			, '* nvcc on Windows requires Visual Studio, i.e. cl.exe. If   *'
+			, '* you have Visual Studio, this may compile, but it is       *'
+			, '* unlikely to link correctly.  I will attempt, with fingers *'
+			, '* crossed...                                                *'
+			, '*'x61, '');
+			
+	}
+	# See these forum discussions:
+	# http://forums.nvidia.com/index.php?showtopic=78531
+	# http://forums.nvidia.com/index.php?showtopic=182655
+	
+	# The heroic ways to get around this would be to write a wrapper around gcc
+	# that accepts cl arguments, or to create a blank cl.bat and manually
+	# seperate the kernel code from the host code and send only the kernel code
+	# through nvcc.
+	
 	our $verbose;
 	print "Running nvcc with args [[", join(']], [[', @_), "]]\n" if $verbose;
 
