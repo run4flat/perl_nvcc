@@ -286,6 +286,12 @@ sub process_args {
 			push @nvcc_args, $_;
 			$include_next_arg = 0;
 		}
+		#*#*# Ridiculous edge case for Fedora 14:
+		elsif ($_ eq '-Wp,-D_FORTIFY_SOURCE=2') {
+			push @nvcc_args, '-D_FORTIFY_SOURCE=2';
+			# XXX - still not working for Fedora becuase the linker doesn't like
+			# the atom tuning invoked in the stock perl build.
+		}
 		elsif (
 			# check if it's an nvcc-safe flag or option, and pass it along if so:
 			
