@@ -320,6 +320,7 @@ ExtUtils::nvcc itself, don't worry about this function.
 # Throws		: if a bade mode or an invalid option is provided
 # Comments		: For example, an output of this function with no args could be
 #				:    perl -MExtUtils::nvcc::Backend -e"ExtUtils::nvcc::Backend::linker" --
+#				: This also checks for current use of blib and adds it if found
 # See also		: verbosity, Inline, EUMM, MB, %args_for
 
 sub build_args {
@@ -327,10 +328,18 @@ sub build_args {
 	croak("Bad mode; must be either 'compiler' or 'linker'")
 		unless $mode eq 'compiler' or $mode eq 'linker';
 	
+	# Inject -Mblib if this script was invoked with blib:
+	my $args = $^X;
+	if (grep /blib/, @INC) {
+		use Cwd;
+		$args .= ' -Mblib="' . getcwd . '"';
+	}
+	
+
 	# Go through and build the argument list, checking the arguments along the
 	# way. If there are bad arguments, collect a full list and croak them all.
 
-	my $args = qq{$^X -MExtUtils::nvcc::Backend -e"};
+	$args .= qq{ -MExtUtils::nvcc::Backend -e"};
 	my @bad_args;
 	foreach (@_) {
 		if (exists $arg_for{$_}) {

@@ -51,3 +51,4 @@
 
 # Avoid inline cached files
 \b_Inline
+process-nvcc-h.pl
