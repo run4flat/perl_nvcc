@@ -305,7 +305,11 @@ sub process_args {
 			# These are valid command-line options with associated values, but which
 			# don't have an = seperating the option from the value
 			or
-			m/^-[lLDUIoOmG]./
+			m/^-[lLDUIoOG]./
+			or
+			# Handle the machine regex more precisely since gcc has the -march
+			# option, which can throw this off:
+			m{^-m(?:32|64)$}
 			or
 			# These are valid command-line options that have an = seperating the
 			# option from the value.
