@@ -219,7 +219,7 @@ sub run_nvcc {
 	# that accepts cl arguments, or to create a blank cl.bat and manually
 	# seperate the kernel code from the host code and send only the kernel code
 	# through nvcc.
-	
+
 	our $verbose;
 	print "Running nvcc with args [[", join(']], [[', @_), "]]\n" if $verbose;
 
@@ -311,11 +311,15 @@ sub process_args {
 			# These are valid command-line options with associated values, but which
 			# don't have an = seperating the option from the value
 			or
-			m/^-[lLDUIoOG]./
+			m/^-[lLDUIoO]./
 			or
 			# Handle the machine regex more precisely since gcc has the -march
 			# option, which can throw this off:
 			m{^-m(?:32|64)$}
+			or
+			# Handle G flag more precisely since cl.exe likes to use -G followed
+			# by letters:
+			m/^-G\d/
 			or
 			# These are valid command-line options that have an = seperating the
 			# option from the value.
@@ -384,6 +388,19 @@ sub process_args {
 	croak ("Last argument [[" . $_[-1] . "]] left me expecting a value, but I didn't find one")
 		if $include_next_arg;
 	
+	# I'm finding weird instances of mutliple -O settings. As such, I'm going
+	# to insert an explicit check for it. I'm sure this could be more efficient
+	my $O_found = 0;
+	OPTION: for(my $i = 0; $i < $#nvcc_args; $i++) {
+		next OPTION unless $nvcc_args[$i] =~ /^-O/;
+		# If we already found the -O option, then splice this one out
+		if ($O_found) {
+			splice @nvcc_args, $i, 1;
+			redo OPTION;
+		}
+		$O_found++;
+	}
+
 	if (our $verbose) {
 		print "ExtUtils::nvcc found nvcc args [[", join(']], [[', @nvcc_args), "]]\n";
 		print "ExtUtils::nvcc found other args [[", join(']], [[', @other_args), "]]\n";
