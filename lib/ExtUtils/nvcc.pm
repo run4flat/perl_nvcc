@@ -488,7 +488,7 @@ specify an alternative compiler.
 
 =back
 
-=head1 BUGS AND LIMITATIONS
+=head1 BUGS, LIMITATIONS
 
 The code for ExtUtils::nvcc is hosted at github, but please file bugs at
 L<https://rt.cpan.org/Public/Bug/Report.html?Queue=ExtUtils-nvcc>.
@@ -509,6 +509,15 @@ Perl or Cygwin.
 Furthermore, C<ExtUtils::nvcc> doesn't even work with Windows at the moment.
 This module was developed on Ubuntu and I have only dabbled with the Windows
 build system. It is giving trouble, and any help would be much appreciated.
+
+=head1 TESTING
+
+In the few months that ExtUtils::nvcc has been quietly sitting on CPAN, it
+has received zero test reports. That's because there isn't a single automated
+tester that has nvcc installed. If you try to install this module, please
+report your success or failure at cpantesters. The process is a bit involved,
+but your test reports will help to turn this piddly little thing into a
+useful tool! You can read more here: L<http://wiki.cpantesters.org/wiki/QuickStart>.
 
 =head1 AUTHOR
 

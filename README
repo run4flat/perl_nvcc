@@ -56,6 +56,18 @@ ExtUtils::MakeMaker, Inline::C, and Module::Build.
 Although not necessary for use, the installation requires Module::Build.
 
 
+Test Reports
+============
+
+In the few months that ExtUtils::nvcc has been quietly sitting on CPAN, it
+has received zero test reports. That's because there isn't a single automated
+tester that has nvcc installed. If you try to install this module, please
+report your success or failure at cpantesters. The process to set everything
+up is a bit involved, but once in place it should be pretty easy to use and
+your test reports will help to turn this piddly little thing into a useful
+tool! You can read more here: L<http://wiki.cpantesters.org/wiki/QuickStart>.
+
+
 Usage
 =====
 
