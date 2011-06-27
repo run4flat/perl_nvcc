@@ -17,7 +17,7 @@ This documentation explains the use of ExtUtils::nvcc version 0.03.
 
 =cut
 
-$VERSION = '0.03';
+$VERSION = '0.04';
 
 # For errors, of course:
 use Carp qw(croak);
