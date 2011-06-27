@@ -502,9 +502,9 @@ representation of its arguments, so this is probably equally troublesome.
 
 For Windows users, a major issue is that nvcc only works with Microsoft's
 compiler, cl.exe, on Windows machines. As such, C<ExtUtils::nvcc> will not
-operate correctly under Cygwin or Strawberry Perl (unless, possibly, if you
-install Visual Studio also). I would like to remedy this situation. Please let
-me know if you find a work-around for Strawberry Perl or Cygwin.
+operate correctly under Cygwin or Strawberry Perl. I would like to remedy
+this situation. Please let me know if you find a work-around for Strawberry
+Perl or Cygwin.
 
 Furthermore, C<ExtUtils::nvcc> doesn't even work with Windows at the moment.
 This module was developed on Ubuntu and I have only dabbled with the Windows
