@@ -21,34 +21,27 @@ build chain.
 Installation
 ============
 
-The standard incantation (which should be performed by CPAN) should work:
+Thorough installation instructions can be found on the github wiki:
 
-	perl Build.PL
-	./Build
-	./Build test
-	./Build install
-
-The last line requires that you have root priveleges unless you are using
-local::lib.
+http://github.com/run4flat/perl_nvcc/wiki/Installing
 
 
 Windows Restrictions
 ====================
 
+First off, ExtUtils::nvcc doesn't yet work for Windows. However, if it ever
+does (and I hope it does, actually), it will likely on work with Visual
+Studio's C++ compiler.
+
 The people at nVidia decided to only support gcc on Linux machines, and cl.exe
-(MS Visual Studio's compiler) on Windows machines. This is truly unfortunate
-since the code is clearly in place to support gcc. In practice, this means that
+(MS Visual Studio's compiler) on Windows machines. In practice, this means that
 ExtUtils::nvcc will not work properly on Strawberry Perl or Cygwin's perl. I'm
 afraid you'll have to get a version of Perl compiled with Visual Studio, and
 you'll need a copy of Visual Studio to compile nVidia code. The good news is
 that Microsoft allows you to download a free copy of any single componenet of
 the Visual Studio suite: you can download Visual C/C++ for free. You will likely
 need to compile your own perl, but once that's in place, you'll have a fully
-operating CPAN and ExtUtils::nvcc will work correctly.
-
-That having been said, I'm still working out the kinks of ExtUtils::nvcc for
-Windows, and as of this time of writing it does not yet work. However, it
-should in principle be possible, and will hopefully happen soon.
+operating CPAN and ExtUtils::nvcc will (some day) work correctly.
 
 
 Dependencies
@@ -77,7 +70,8 @@ I used to have an issue on Ubuntu with segmentation faults (hence the END block
 in the example Inline script) but that seems to have gone.
 
 The only outstanding bug at the moment is that Windows is not yet supported,
-not even with cl.exe. I am working on it and help here would be appreciated.
+not even with cl.exe, in spite of great efforst. I am working on it and help
+here would be appreciated.
 
 
 Feedback Welcome
