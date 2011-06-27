@@ -16,9 +16,10 @@ cuda_test($data);
 print "Got ", join (', ', unpack('f*', $data)), "\n";
 
 END {
-	# I am having trouble with memory leaks. This messgae
+	# I was having trouble with memory leaks. This messgae
 	# indicates that the segmentation fault occurrs after
-	# the end of the script's execution.
+	# the end of the script's execution. (However, it no
+	# longer appears to be a problem! :-)
 	print "Really done!\n";
 }
 
@@ -64,4 +65,4 @@ void cuda_test(char * input) {
 	
 	// Free the device memory
 	cudaFree(data_d);
-}  // note again?!
+}

@@ -46,6 +46,10 @@ the Visual Studio suite: you can download Visual C/C++ for free. You will likely
 need to compile your own perl, but once that's in place, you'll have a fully
 operating CPAN and ExtUtils::nvcc will work correctly.
 
+That having been said, I'm still working out the kinks of ExtUtils::nvcc for
+Windows, and as of this time of writing it does not yet work. However, it
+should in principle be possible, and will hopefully happen soon.
+
 
 Dependencies
 ============
@@ -69,11 +73,11 @@ ExtUtils::nvcc
 Bugs
 ====
 
-At the moment, Perl modules built using ExtUtils::nvcc (and by extension scripts
-that use ExtUtils::nvcc together with Inline::C) die with a segmentation fault. 
-The death occurrs after the last END block, so I don't think it's a problem, 
-functionally speaking. However, clearly something is messed up with the 
-bookkeeping, and I'm not sure what's going one. Help here would be appreciated.
+I used to have an issue on Ubuntu with segmentation faults (hence the END block
+in the example Inline script) but that seems to have gone.
+
+The only outstanding bug at the moment is that Windows is not yet supported,
+not even with cl.exe. I am working on it and help here would be appreciated.
 
 
 Feedback Welcome

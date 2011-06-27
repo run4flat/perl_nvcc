@@ -363,14 +363,14 @@ Windows usage presents a couple of difficulties, as described in this section.
 
 Unfortunately, nVidia's compiler wrapper (nvcc) only supports the use of cl.exe
 on Windows. This means that Cygwin and Strawberry Perl users are out of luck for
-using ExtUtils::nvcc.
+using ExtUtils::nvcc. I attempted to install Visual Studio alongside Strawberry
+Perl, but the Perl toolchain passes along the gcc flags, which cl.exe does not
+like. There may be a way to fiddle with the configuration a bit, but I wouldn't
+hold my breath.
 
-There may be a way to install Visual Studio alongside your Strawberry Perl or
-Cygwin installations. In that case, assuming you run the build process in a
-Visual Studio Command Prompt, nvcc will be happy because it will be able to find
-cl.exe. However, I have not tested this method, and I expect that perl will have
-trouble loading the resulting libraries. Please let me know if you get this to
-work.
+An alternative may be to create a drop-in cl.exe replacement which parses the
+arguments for cl.exe and invokes gcc. If that's not reverse-engineering
+reverse-engineered, I don't know what is.
 
 =head2 Visual Studio Command Prompt
 
@@ -379,7 +379,9 @@ Menu entry for Visual Studio Command Prompt. You should run your build processes
 (i.e. cpan) from one of these command prompts. Among other things, this command
 prompt sets all of the necessary environment variables to ensure that the
 compiler can be found, and that the compiler can find all the necessary
-libraries.
+libraries. This may or may not be necessary for using nvcc directly, but it is
+certainly is necessary for the rest of the Perl toolchain to find cl.exe and
+friends.
 
 
 =head1 DIAGNOSTICS
@@ -465,7 +467,11 @@ This toolchain requires that you have the following pieces:
 You must have nVidia's CUDA toolkit in order to compile CUDA code. This module
 ultimately calls nvcc to perform the compilation; it cannot compile your CUDA
 code itself. Furthermore, nvcc requires a C++ compiler, so you'll need to be
-sure you have one of those.
+sure you have one of those. The CUDA toolkit is only available for a handful of
+systems, and this module does not support building CUDA-capable modules for
+other systems. For example, the latest version of Ubuntu or Fedora may not be
+supported, and as of this time of writing Gentoo and Arch Linux (and many
+others) have no support at all.
 
 =item A Perl development environment
 
@@ -484,25 +490,25 @@ specify an alternative compiler.
 
 =head1 BUGS AND LIMITATIONS
 
-The giant, huge, fat, glaring bug with ExtUtils::nvcc is that it creates code
-which segfaults at the very end of the program. There is deep magic, almost
-certainly involving a double-free, which I have yet to figure out. Any help for
-this would be much appreciated.
+The code for ExtUtils::nvcc is hosted at github, but please file bugs at
+L<https://rt.cpan.org/Public/Bug/Report.html?Queue=ExtUtils-nvcc>.
 
-The second major problem is that the Backend has a very ad-hoc parsing scheme
-that is not tested at the moment. It would be better, I think, to query nvcc at
-runtime for arguments that it accepts so that there could never be a version
-skew for the arguments that the Backend parses and the arguments that nvcc
-accepts.
+A major maintainability problem is that the Backend has a very ad-hoc parsing
+scheme that is not systematically tested at the moment. It would be better, I
+think, to query nvcc at runtime for arguments that it accepts so that there
+could never be a version skew for the arguments that the Backend parses and the
+arguments that nvcc accepts. However, nvcc does not have an easily parsed
+representation of its arguments, so this is probably equally troublesome.
 
-For Windows users, a third major dilema is that nvcc only works with Microsoft's
+For Windows users, a major issue is that nvcc only works with Microsoft's
 compiler, cl.exe, on Windows machines. As such, C<ExtUtils::nvcc> will not
 operate correctly under Cygwin or Strawberry Perl (unless, possibly, if you
 install Visual Studio also). I would like to remedy this situation. Please let
 me know if you find a work-around for Strawberry Perl or Cygwin.
 
-The code for ExtUtils::nvcc is hosted at github, but please file bugs at
-L<https://rt.cpan.org/Public/Bug/Report.html?Queue=ExtUtils-nvcc>.
+Furthermore, C<ExtUtils::nvcc> doesn't even work with Windows at the moment.
+This module was developed on Ubuntu and I have only dabbled with the Windows
+build system. It is giving trouble, and any help would be much appreciated.
 
 =head1 AUTHOR
 
@@ -515,16 +521,16 @@ David Mertens <dcmertens.perl.csharp@gmail.com>
 
 The source code for this project is on github at L<github.com/run4flat/perl_nvcc>.
 
-This is intended to be part of the toolchain to enable L<CUDA>. A Perl module
-for CUDA does not yet exist, but (hopefully) this will be used for it when that
-happens.
+This is intended to be part of the toolchain to enable L<CUDA>. A minimalistic
+Perl module for CUDA is in the works and can be found at
+L<github.com/run4flat/perl-CUDA-Minimal>.
 
 You can read more about CUDA at nVidia's website:
 L<http://www.nvidia.com/object/cuda_home_new.html>
 
 An alternative to embedding CUDA in C or XS is L<KappaCUDA>.
 
-Other imporant and related toolchain modules include L<Inline::C>,
+Other important and related toolchain modules include L<Inline::C>,
 L<Module::Build>, L<ExtUtils::MakeMaker>
 
 =head1 LICENSE AND COPYRIGHT
