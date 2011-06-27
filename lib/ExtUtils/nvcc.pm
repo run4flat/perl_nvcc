@@ -355,7 +355,7 @@ sub build_args {
 
 1;
 
-=head1 WIDNOWS ISSUES
+=head1 WINDOWS ISSUES
 
 Windows usage presents a couple of difficulties, as described in this section.
 
