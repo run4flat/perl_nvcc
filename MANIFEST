@@ -7,3 +7,4 @@ README
 t/compile.t
 t/cuda_test.c
 t/simple_compile_test.cu
+META.yml

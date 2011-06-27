@@ -519,6 +519,13 @@ report your success or failure at cpantesters. The process is a bit involved,
 but your test reports will help to turn this piddly little thing into a
 useful tool! You can read more here: L<http://wiki.cpantesters.org/wiki/QuickStart>.
 
+=head1 TODO
+
+The only major missing piece at this time is a true test of the build
+process using ExtUtils::MakeMake and/or Module::Build. I would like to
+add tests of these to the test suite, but it'll take some thought to
+figure out how to invoke the build system from inside the test suite.
+
 =head1 AUTHOR
 
 I have obfuscated my email address. Simply remove the portion that would not
