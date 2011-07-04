@@ -150,8 +150,10 @@ sub linker {
 		unless @source_files;
 	
 	# Set up the flags for the compiler arguments:
-	unshift @nvcc_args, ("-Xlinker=" . join ',', @other_args)
-		if @other_args;
+	# - extract linker arguments
+	my @linker_args = map { s/^-Wl,// ? $_ : () } @other_args;
+	unshift @nvcc_args, ("-Xlinker=" . join ',', @linker_args)
+		if @linker_args;
 	
 	# Run nvcc.
 	run_nvcc(@nvcc_args, @source_files);
