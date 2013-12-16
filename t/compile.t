@@ -19,8 +19,9 @@ use warnings;
 use Cwd;
 use File::Spec;
 if (cwd =~ /t$/) {
-	print "# moving up one directory\n";
-	chdir File::Spec->updir() or die "Need to move out of test directory, but can't\n";
+	diag("moving up one directory");
+	chdir File::Spec->updir()
+		or die "Need to move out of test directory, but can't???\n";
 }
 
 

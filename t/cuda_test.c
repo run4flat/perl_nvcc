@@ -25,7 +25,8 @@ char * create_dev_message () {
 	char * dev_message;
 	cudaError_t err = cudaMalloc(&dev_message, 12);
 	if (err != cudaSuccess) {
-		printf("Trouble with memory!\n");
+		printf("Trouble allocating memory in %s on line %d:\n", __FILE__, __LINE__);
+		printf("  %s\n", cudaGetErrorString(err));
 		exit(1);
 	}
 	
@@ -36,7 +37,8 @@ char * create_dev_message () {
 void copy_message_to_dev(char * message, char * dev_message) {
 	cudaError_t err = cudaMemcpy(dev_message, message, 12, cudaMemcpyHostToDevice);
 	if (err != cudaSuccess) {
-		printf("Trouble copying memory to the device!\n");
+		printf("Trouble copying memory to the device in %s on line %d:\n", __FILE__, __LINE__);
+		printf("  %s\n", cudaGetErrorString(err));
 		exit(2);
 	}
 }
@@ -48,7 +50,8 @@ void run_fix_kernel(char * dev_message) {
 	// Check for errors:
 	cudaError_t err = cudaThreadSynchronize();
 	if (err != cudaSuccess) {
-		printf("Trouble running the kernel!\n");
+		printf("Trouble running the kernel in %s on line %d:\n", __FILE__, __LINE__);
+		printf("  %s\n", cudaGetErrorString(err));
 		exit(3);
 	}
 }
@@ -57,7 +60,8 @@ void run_fix_kernel(char * dev_message) {
 void copy_message_to_host(char * message, char * dev_message) {
 	cudaError_t err = cudaMemcpy(message, dev_message, 12, cudaMemcpyDeviceToHost);
 	if (err != cudaSuccess) {
-		printf("Trouble copying memory back to host!\n");
+		printf("Trouble copying memory back to host in %s on line %d:\n", __FILE__, __LINE__);
+		printf("  %s\n", cudaGetErrorString(err));
 		exit(4);
 	}
 }
@@ -66,7 +70,8 @@ void copy_message_to_host(char * message, char * dev_message) {
 void clean_up_dev_memory(char * dev_message) {
 	cudaError_t err = cudaFree(dev_message);
 	if (err != cudaSuccess) {
-		printf("Trouble freeing device memory!\n");
+		printf("Trouble freeing device memory in %s on line %d:\n", __FILE__, __LINE__);
+		printf("  %s\n", cudaGetErrorString(err));
 		exit(5);
 	}
 }
