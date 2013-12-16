@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 use Module::Build;
 
 # check that nvcc is present and available
