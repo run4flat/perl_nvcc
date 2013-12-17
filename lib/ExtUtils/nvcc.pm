@@ -13,7 +13,7 @@ use vars qw($VERSION);
 
 =head1 VERSION
 
-This documentation explains the use of ExtUtils::nvcc version 0.03.
+This documentation explains the use of ExtUtils::nvcc version 0.04.
 
 =cut
 
@@ -159,6 +159,17 @@ L</Optional Arguments>:
 
  use Inline C => DATA => ExtUtils::nvcc::Inline('verbose');
 
+There is a tricky alignment issue that can arise when working with Perl-based
+floating-point values. To fix this, you need to use a specific incantation of
+C's C<#pragma pack>. This is relatively simple to do when you are working
+directly with XS files, but is a bit annoying to do with Inline, so I also
+provide the optional C<pack> argument:
+
+ use Inline C => DATA => ExtUtils::nvcc::Inline('pack');
+
+which can also be combined with the C<verbose> argument, as necessary. Alignment
+issues with CUDA are discussed in greater detail in L<CUDA::Minimal>.
+
 =cut
 
 ################################################################################
@@ -173,8 +184,23 @@ L</Optional Arguments>:
 # See also		: EUMM, MB, build_args
 
 sub Inline {
+	my @pack_args;
+	if (grep { $_ eq 'pack' } @_) {
+		# Add the pack args
+		@pack_args = 
+			AUTO_INCLUDE => '#pragma pack (8)',
+			PRE_HEAD => q{
+				#include "config.h"
+				#if MEM_ALIGNBYTES==4
+					#pragma pack (4)
+				#endif
+			};
+		# Remove 'pack' from the list of options
+		@_ = grep { $_ ne 'pack' } @_;
+	}
 	return	CC => build_args('compiler', @_),
-			LD => build_args('linker', @_);
+			LD => build_args('linker', @_),
+			@pack_args;
 }
 
 =head2 EUMM
