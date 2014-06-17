@@ -187,14 +187,15 @@ sub Inline {
 	my @pack_args;
 	if (grep { $_ eq 'pack' } @_) {
 		# Add the pack args
-		@pack_args = 
+		@pack_args = (
 			AUTO_INCLUDE => '#pragma pack (8)',
 			PRE_HEAD => q{
 				#include "config.h"
 				#if MEM_ALIGNBYTES==4
 					#pragma pack (4)
 				#endif
-			};
+			}
+		);
 		# Remove 'pack' from the list of options
 		@_ = grep { $_ ne 'pack' } @_;
 	}
