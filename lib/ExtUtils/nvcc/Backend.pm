@@ -102,6 +102,14 @@ sub compiler {
 	die "You must provide at least one source file\n"
 		unless @source_files;
 	
+	# Fix dNOOP issue for Perl v5.16
+	if ($^V ge v5.16.0 and $^V < v5.17.0) {
+		# For each source file specified, build a new temporary source file
+		# that inserts the desired redefinition into their code
+		# XXXX working here
+	}
+	
+	
 	# Set up the flags for the compiler arguments:
 	unshift @nvcc_args, ("-Xcompiler=" . join ',', @other_args)
 		if @other_args;
